@@ -10126,6 +10126,7 @@ Shell
 
 ```sh
 #!/bin/bash
+clear
 g++ main.cpp -o a.out
 if [ $? -ne 0 ]; then exit; fi
 s=$(date +%s%3N)
@@ -10143,6 +10144,7 @@ read -n 1 -s
 PowerShell
 
 ```powershell
+clear
 g++ main.cpp -o a.exe
 if (!$?) { exit }
 $t = Measure-Command { cmd /c "a.exe < in.txt > out 2> err" }
