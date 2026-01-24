@@ -9592,16 +9592,16 @@ __gnu_pbds::tree<std::pair<int, int>, __gnu_pbds::null_type,
     trr;
 ```
 
-insert (x)：向树中插入一个元素 x，返回 std::pair<point_iterator, bool>。
-Erase (x)：从树中删除一个元素/迭代器 x，返回一个 bool 表明是否删除成功。
-Order_of_key (x)：返回 x 以 Cmp_Fn 比较的排名，**0 开始**。
-Find_by_order (x)：返回 Cmp_Fn 比较的排名所对应元素的迭代器。
-Lower_bound (x)：以 Cmp_Fn 比较做 lower_bound，返回迭代器。
-Upper_bound (x)：以 Cmp_Fn 比较做 upper_bound，返回迭代器。
-Join (x)：将 x 树并入当前树，前提是两棵树的类型一样，x 树被删除。
-Split (x, b)：以 Cmp_Fn 比较，小于等于 x 的属于当前树，其余的属于 b 树。
-Empty ()：返回是否为空。
-Size ()：返回大小。
+insert(x)：向树中插入一个元素 x，返回 std::pair<point_iterator, bool>。
+erase(x)：从树中删除一个元素/迭代器 x，返回一个 bool 表明是否删除成功。
+order_of_key(x)：返回 x 以 Cmp_Fn 比较的排名，**0 开始**。
+find_by_order(x)：返回 Cmp_Fn 比较的排名所对应元素的迭代器。
+lower_bound(x)：以 Cmp_Fn 比较做 lower_bound，返回迭代器。
+upper_bound(x)：以 Cmp_Fn 比较做 upper_bound，返回迭代器。
+join(x)：将 x 树并入当前树，前提是两棵树的类型一样，x 树被删除。
+split(x, b)：以 Cmp_Fn 比较，小于等于 x 的属于当前树，其余的属于 b 树。
+empty()：返回是否为空。
+size()：返回大小。
 
 元素不可重，可以使用 pair<int,int>加入时间戳来使元素可重
 
@@ -9735,4 +9735,36 @@ void date(int n, int &y, int &m, int &d) {
 for (int s = u; s; s = (s - 1) & u) {
 	// s 是 u 的一个非空子集 
 }
+```
+
+## CPH
+
+Shell
+
+```sh
+#!/bin/bash
+g++ main.cpp -o a.out
+if [ $? -ne 0 ]; then exit; fi
+s=$(date +%s%3N)
+./a.out < in.txt > out.txt 2> err.txt
+e=$(date +%s%3N)
+cat out.txt
+echo -e "\n--- err ---\n"
+cat err.txt
+echo -e "\nTime: $((e-s))ms"
+rm a.out out.txt err.txt
+# 若不需要按下回车后退出可以不打最后一行
+read -n 1 -s
+```
+
+PowerShell
+
+```powershell
+g++ main.cpp -o a.exe
+if (!$?) { exit }
+$t = Measure-Command { cmd /c "a.exe < in.txt > out 2> err" }
+gc out; echo "`n--- err ---`n"; gc err; echo "`nTime: $([int]$t.TotalMilliseconds)ms"
+rm a.exe, out, err -ErrorAction SilentlyContinue
+# 若不需要按下回车后退出可以不打最后一行
+$null = [Console]::ReadKey()
 ```
