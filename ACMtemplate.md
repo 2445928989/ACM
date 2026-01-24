@@ -28,96 +28,59 @@ struct BIT{
 };
 ```
 
-区间最大值
-维护$[0,n]$这个区间
+前缀区间最值
+修改只能往大了修改，$newvalue>=oldvalue$
 
-```cpp
+```c++
 struct BIT{
     vector<int> tree;
-    vector<int> raw;
     int n;
     inline int lowbit(int x){
         return x&(-x);
     }
     BIT(int n){
         this->n=n+1;
-        tree.resize(n+2,0);
-        raw.resize(n+2,0);
+        tree.resize(n+1,-INF);
     }
     void update(int x,int y){
         ++x;
-        raw[x]=y;
+        tree[x]=y;
         for(int i=x;i<=n;i+=lowbit(i)){
-            tree[i]=raw[i];
-            for(int j=1;j<lowbit(i);j<<=1){
-                tree[i]=max(tree[i],tree[i-j]);
-            }
+            tree[i]=max(tree[i],y);
         }
     }
-    int query(int x,int y){
-        ++x,++y;
-        if(x>y) return 0;
-        int ans=0;
-        while(x<=y){
-            int nx=y-lowbit(y)+1;
-            if(nx>=x){
-                ans=max(ans,tree[y]);
-                y=nx-1;
-            }else{
-                ans=max(ans,raw[y]);
-                --y;
-            }
+    void clear(int x){
+        ++x;
+        tree[x]=-INF;
+        for(int i=x;i<=n;i+=lowbit(i)){
+            tree[i]=-INF;
+        }
+    }
+    int query(int x){
+        ++x;
+        if(x<1) return -INF;
+        int ans=-INF;
+        for(int i=x;i>=1;i-=lowbit(i)){
+            ans=max(ans,tree[i]);
         }
         return ans;
     }
 };
 ```
-区间最小值
-```cpp
-struct BIT{
-    vector<int> tree;
-    vector<int> raw;
-    int n;
-    inline int lowbit(int x){
-        return x&(-x);
-    }
-    BIT(int n){
-        this->n=n+1;
-        tree.resize(n+2,0);
-        raw.resize(n+2,0);
-    }
-    void update(int x,int y){
-        ++x;
-        raw[x]=y;
-        for(int i=x;i<=n;i+=lowbit(i)){
-            tree[i]=raw[i];
-            for(int j=1;j<lowbit(i);j<<=1){
-                tree[i]=min(tree[i],tree[i-j]);
-            }
-        }
-    }
-    int query(int x,int y){
-        ++x,++y;
-        if(x>y) return 1e18;
-        int ans=1e18;
-        while(x<=y){
-            int nx=y-lowbit(y)+1;
-            if(nx>=x){
-                ans=min(ans,tree[y]);
-                y=nx-1;
-            }else{
-                ans=min(ans,raw[y]);
-                --y;
-            }
-        }
-        return ans;
-    }
-};
-```
+
 ## 线段树
+
+update和query的时候一定要检查$[l,r]$是否正确
+加l>r return 0
 
 ```cpp
 struct SegmentTree {
+    int lp(int x) {
+        return x << 1;
+    }
+    int rp(int x) {
+        return x << 1 | 1;
+    }
     struct edge {
         int sum;
         edge() {
@@ -128,15 +91,15 @@ struct SegmentTree {
     vector<edge> node;
     int n;
     void pushup(int id, int l, int r) {
-        node[id].sum = node[id << 1].sum + node[id << 1 | 1].sum;
+        node[id].sum = node[lp(id)].sum + node[rp(id)].sum;
     }
     void pushdown(int id, int l, int r) {
         if (lazy[id]) {
             int mid = l + (r - l >> 1);
-            lazy[id << 1] += lazy[id];
-            lazy[id << 1 | 1] += lazy[id];
-            node[id << 1].sum += (mid - l + 1) * lazy[id];
-            node[id << 1 | 1].sum += (r - mid) * lazy[id];
+            lazy[lp(id)] += lazy[id];
+            lazy[rp(id)] += lazy[id];
+            node[lp(id)].sum += (mid - l + 1) * lazy[id];
+            node[rp(id)].sum += (r - mid) * lazy[id];
             lazy[id] = 0;
         }
     }
@@ -153,8 +116,8 @@ struct SegmentTree {
                 return;
             }
             int mid = l + (r - l >> 1);
-            self(self, id << 1, l, mid);
-            self(self, id << 1 | 1, mid + 1, r);
+            self(self, lp(id), l, mid);
+            self(self, rp(id), mid + 1, r);
             pushup(id, l, r);
         };
         buildtree(buildtree, 1, 1, n);
@@ -175,9 +138,9 @@ struct SegmentTree {
         pushdown(id, l, r);
         int mid = l + (r - l >> 1);
         if (x <= mid)
-            update(id << 1, l, mid, x, y, delta);
+            update(lp(id), l, mid, x, y, delta);
         if (y > mid)
-            update(id << 1 | 1, mid + 1, r, x, y, delta);
+            update(rp(id), mid + 1, r, x, y, delta);
         pushup(id, l, r);
     }
     int query(int id, int l, int r, int x, int y) {
@@ -189,9 +152,9 @@ struct SegmentTree {
         int mid = l + (r - l >> 1);
         int ans = 0;
         if (x <= mid)
-            ans += query(id << 1, l, mid, x, y);
+            ans += query(lp(id), l, mid, x, y);
         if (y > mid)
-            ans += query(id << 1 | 1, mid + 1, r, x, y);
+            ans += query(rp(id), mid + 1, r, x, y);
         return ans;
     }
     // 第一个满足前缀和>x的位置,找不到n+1
@@ -204,10 +167,10 @@ struct SegmentTree {
         }
         pushdown(id, l, r);
         int mid = l + (r - l >> 1);
-        if (node[id << 1].sum > x) {
-            return upper_bound(id << 1, l, mid, x);
+        if (node[lp(id)].sum > x) {
+            return upper_bound(lp(id), l, mid, x);
         } else {
-            return upper_bound(id << 1 | 1, mid + 1, r, x - node[id << 1].sum);
+            return upper_bound(rp(id), mid + 1, r, x - node[lp(id)].sum);
         }
     }
 };
@@ -263,7 +226,7 @@ struct SegmentTree{
 ```
 
 ## 线段树合并
-
+update和merge之后一定要记得接收新的根编号。
 ```cpp
 #include<bits/stdc++.h>
 using namespace std;
@@ -684,7 +647,7 @@ struct TRIE{
 };
 ```
 
-## ST 表
+## ST表
 
 ```cpp
 struct ST {
@@ -1167,6 +1130,43 @@ signed main(){
 }
 ```
 
+## 可删堆
+```c++
+template <class T, class Cmp=less<T>>
+class DeletableHeap {
+    priority_queue<T, std::vector<T>, Cmp> items{};
+    priority_queue<T, std::vector<T>, Cmp> trash{};
+    void sync() {
+        while (!trash.empty() and items.top() == trash.top()) {
+            items.pop();
+            trash.pop();
+        }
+    }
+public:
+    bool empty(){
+        sync();
+        return items.empty();
+    }
+    int size() {
+        assert(items.size() >= trash.size());
+        return items.size() - trash.size();
+    }
+    void push(T x) {
+        items.push(x);
+    }
+    void erase(T x) {
+        trash.push(x);
+    }
+    T top() {
+        sync();
+        return items.top();
+    }
+    void pop() {
+        sync();
+        items.pop();
+    }
+};
+```
 ## LCT
 
 ```cpp
@@ -3190,7 +3190,7 @@ signed main(){
 
 ## 卡特兰数
 
-有一个大小为 $n×n$ 的方格图，左下角为 $(0,0)$ ，右上角为 $(n,n)$ ，从左下角开始每次只能向右或者向上走一个单位，不能走到 $y=x$ 上方（但可以触碰），有几种可能的路径
+	有一个大小为 $n×n$ 的方格图，左下角为 $(0,0)$ ，右上角为 $(n,n)$ ，从左下角开始每次只能向右或者向上走一个单位，不能走到 $y=x$ 上方（但可以触碰），有几种可能的路径
 
 前几项：$1\ 1\ 2\ 5\ 14\ 42$
 
@@ -7781,6 +7781,8 @@ signed main(){
 
 继续对于他的每个儿子节点作为根的子树，继续找重心，继续上面的操作。
 
+一定要注意getdis的时候先不要把信息合并到主树上，跑完getdis再把信息合并到已遍历的主树上。
+
 ```cpp
 //树上是否存在边权和为k的路径
 #include<bits/stdc++.h>
@@ -7890,6 +7892,187 @@ signed main(){
 按照点分治的重心，构建一棵新树，也就是对于每一个找到的重心，将上一层分治的重心设置为他的父节点，得到一棵大小不变，最多$log(n)$层的虚树。
 
 每个点子树大小的和为$nlogn$。
+
+建虚树的时候注意别用原树的边来建了。
+
+```c++
+void solve(){
+    int n,q,A;
+    cin>>n>>q>>A;
+    vector<int> xx(n+1);
+    for(int i=1;i<=n;i++) cin>>xx[i];
+    vector<vector<pair<int,int>>> v(n+1);
+    for(int i=1;i<n;i++){
+        int x,y,w;
+        cin>>x>>y>>w;
+        v[x].emplace_back(y,w);
+        v[y].emplace_back(x,w);
+    }
+    vector<int> sz(n+1);
+    vector<bool> vis(n+1);
+    auto getsize=[&](auto &&self,int x,int fa)->void{
+        sz[x]=1;
+        for(auto &[to,w]:v[x]){
+            if(to==fa||vis[to]) continue;
+            self(self,to,x);
+            sz[x]+=sz[to];
+        }
+    };
+    auto getzx=[&](int x,int fa,int tot){
+        int rt=0;
+        auto dfs=[&](auto &&self,int x,int fa)->void{
+            int maxn=0;
+            for(auto &[to,w]:v[x]){
+                if(to==fa||vis[to]) continue;
+                self(self,to,x);
+                maxn=max(maxn,sz[to]);
+            }
+            maxn=max(maxn,tot-sz[x]);
+            if(maxn<=tot/2) rt=x;
+        };
+        dfs(dfs,x,fa);
+        return rt;
+    };
+    vector<vector<int>> vv(n+1);
+    vector<int> fa(n+1);
+    vector<unordered_map<int,int>> sonid(n+1);
+    auto sol=[&](auto &&self,int x)->void{
+        vis[x]=1;
+        int id=0;
+        for(auto &[to,w]:v[x]){
+            if(vis[to]) continue;
+            getsize(getsize,to,x);
+            int rt=getzx(to,x,sz[to]);
+            fa[rt]=x;
+            vv[x].push_back(rt);
+            sonid[x][rt]=id++;
+            self(self,rt);
+        }
+    };
+    getsize(getsize,1,0);
+    int rt=getzx(1,0,n);
+    sol(sol,rt);
+    vector<pair<int,int>> lcaqu(1);
+    vector<int> lcadfn(n+1),dep(n+1),dis(n+1);
+    auto lcadfs=[&](auto &&self,int x,int fa)->void{
+        lcadfn[x]=lcaqu.size();
+        dep[x]=dep[fa]+1;
+        lcaqu.emplace_back(dep[x],x);
+        for(auto &[to,w]:v[x]){
+            if(to==fa) continue;
+            dis[to]=dis[x]+w;
+            self(self,to,x);
+            lcaqu.emplace_back(dep[x],x);
+        }
+    };
+    lcadfs(lcadfs,1,0);
+    ST st(lcaqu.size()-1,lcaqu);
+    auto getlca=[&](int x,int y){
+        int l=lcadfn[x],r=lcadfn[y];
+        if(l>r) swap(l,r);
+        return st.query(l,r);
+    };
+    auto getdis=[&](int x,int y){
+        int lca=getlca(x,y);
+        return dis[x]+dis[y]-2*dis[lca];
+    };
+    //i这个中心，年龄为[1,j]的dis和
+    //i这个中心，年龄为[1,j]的数量
+    vector<vector<pair<int,int>>> sum(n+1),cnt(n+1);
+    vector<vector<vector<pair<int,int>>>> sum1(n+1),cnt1(n+1);
+    auto init=[&](auto &&self,int x)->void{
+        stack<pair<int,int>> st;
+        st.emplace(x,0);
+        sum1[x].resize(sonid[x].size());
+        cnt1[x].resize(sonid[x].size());
+        while(!st.empty()){
+            auto [now,f]=st.top();
+            st.pop();
+            sum[x].emplace_back(xx[now],getdis(x,now));
+            cnt[x].emplace_back(xx[now],1);
+            if(f){
+                sum1[x][sonid[x][f]].emplace_back(xx[now],getdis(x,now));
+                cnt1[x][sonid[x][f]].emplace_back(xx[now],1);
+            }
+            for(auto &to:vv[now]){
+                if(x==now){
+                    st.emplace(to,to);
+                }else{
+                    st.emplace(to,f);
+                }
+            }
+        }
+        sort(sum[x].begin(),sum[x].end());
+        for(int i=1;i<sum[x].size();i++){
+            sum[x][i].second+=sum[x][i-1].second;
+        }
+        sort(cnt[x].begin(),cnt[x].end());
+        for(int i=1;i<cnt[x].size();i++){
+            cnt[x][i].second+=cnt[x][i-1].second;
+        }
+        for(int i=0;i<sum1[x].size();i++){
+            auto &p=sum1[x][i];
+            sort(p.begin(),p.end());
+            for(int j=1;j<p.size();j++){
+                p[j].second+=p[j-1].second;
+            }
+        }
+        for(int i=0;i<cnt1[x].size();i++){
+            auto &p=cnt1[x][i];
+            sort(p.begin(),p.end());
+            for(int j=1;j<p.size();j++){
+                p[j].second+=p[j-1].second;
+            }
+        }
+        for(int &to:vv[x]){
+            self(self,to);
+        }
+    };
+    init(init,rt);
+    int ans=0;
+    while(q--){
+        int u,a,b;
+        cin>>u>>a>>b;
+        int l=min((a+ans)%A,(b+ans)%A);
+        int r=max((a+ans)%A,(b+ans)%A);
+        int pre=0,prew=0;
+        ans=0;
+        for(int i=u;i;i=fa[i]){
+            if(i==u){
+                auto it=upper_bound(sum[i].begin(),sum[i].end(),make_pair(r,INF));
+                if(it!=sum[i].begin()) ans+=prev(it)->second;
+                it=lower_bound(sum[i].begin(),sum[i].end(),make_pair(l,-INF));
+                if(it!=sum[i].begin()) ans-=prev(it)->second;
+            }else{
+                int d=getdis(i,u);
+                int distmp=0,cnttmp=0;
+                auto it=upper_bound(sum[i].begin(),sum[i].end(),make_pair(r,INF));
+                if(it!=sum[i].begin()) distmp+=prev(it)->second;
+                it=lower_bound(sum[i].begin(),sum[i].end(),make_pair(l,-INF));
+                if(it!=sum[i].begin()) distmp-=prev(it)->second;
+                it=upper_bound(cnt[i].begin(),cnt[i].end(),make_pair(r,INF));
+                if(it!=cnt[i].begin()) cnttmp+=prev(it)->second;
+                it=lower_bound(cnt[i].begin(),cnt[i].end(),make_pair(l,-INF));
+                if(it!=cnt[i].begin()) cnttmp-=prev(it)->second;
+
+                int predistmp=0,precnttmp=0;
+                pre=sonid[i][pre];
+                it=upper_bound(sum1[i][pre].begin(),sum1[i][pre].end(),make_pair(r,INF));
+                if(it!=sum1[i][pre].begin()) predistmp+=prev(it)->second;
+                it=lower_bound(sum1[i][pre].begin(),sum1[i][pre].end(),make_pair(l,-INF));
+                if(it!=sum1[i][pre].begin()) predistmp-=prev(it)->second;
+                it=upper_bound(cnt1[i][pre].begin(),cnt1[i][pre].end(),make_pair(r,INF));
+                if(it!=cnt1[i][pre].begin()) precnttmp+=prev(it)->second;
+                it=lower_bound(cnt1[i][pre].begin(),cnt1[i][pre].end(),make_pair(l,-INF));
+                if(it!=cnt1[i][pre].begin()) precnttmp-=prev(it)->second;
+                ans+=(distmp-predistmp)+d*(cnttmp-precnttmp);
+            }
+            pre=i;
+        }
+        cout<<ans<<"\n";
+    }
+}
+```
 
 ## Kruskal重构树
 
@@ -8128,7 +8311,55 @@ signed main(){
     return 0;
 }
 ```
+### 欧拉序+st表
 
+预处理$O(nlogn)$，询问$O(1)$
+
+```c++
+struct ST {
+    vector<vector<pair<int,int>>> dp;
+    ST(int n, vector<pair<int,int>> &v) {
+        dp.resize(20);
+        for (int i = 0; i < 20; i++) {
+            dp[i].resize(n + 1);
+        }
+        for (int i = 1; i <= n; i++) {
+            dp[0][i] = v[i];
+        }
+        for (int i = 1; i <= 18; i++) {
+            for (int j = 1; j + (1ll << i) - 1 <= n; j++) {
+                dp[i][j] = min(dp[i - 1][j], dp[i - 1][j + (1ll << i - 1)]);
+            }
+        }
+    }
+    int query(int l, int r) {
+        int k = __lg(r - l + 1);
+        return min(dp[k][l], dp[k][r - (1ll << k) + 1]).second;
+    }
+};
+int main(){
+	vector<pair<int,int>> lcaqu(1);
+    vector<int> lcadfn(n+1),dep(n+1),dis(n+1);
+    auto lcadfs=[&](auto &&self,int x,int fa)->void{
+        lcadfn[x]=lcaqu.size();
+        dep[x]=dep[fa]+1;
+        lcaqu.emplace_back(dep[x],x);
+        for(auto &[to,w]:v[x]){
+            if(to==fa) continue;
+            dis[to]=dis[x]+w;
+            self(self,to,x);
+            lcaqu.emplace_back(dep[x],x);
+        }
+    };
+    lcadfs(lcadfs,1,0);
+    ST st(lcaqu.size()-1,lcaqu);
+    auto getlca=[&](int x,int y){
+        int l=lcadfn[x],r=lcadfn[y];
+        if(l>r) swap(l,r);
+        return st.query(l,r);
+    };
+}
+```
 ## 图的匹配
 
 ### 一般图最大匹配
@@ -8279,7 +8510,27 @@ $$
 $$
 
 
+## prufer序列
 
+长度为n-2，与一个顶点标过号的点数为n的无根树一一对应。
+
+无根树转prufer序列：
+1. 找到编号最小的度数为1的点
+2. 删除该节点，并在序列中添加与该节点相连的节点的编号
+3. 重复1,2操作，直到只剩下两个节点
+
+prufer转无根树:
+1. 每次取出prufer序列中最前面的元素u
+2. 在点集中找到编号最小的没有在prufer中出现的元素v
+3. u,v连边，分别删除
+4. 最后点集剩下两个点，连边
+
+性质:
+1. prufer中某个编号出现的次数等于这个点在无根树中的度数-1
+2. n点的无根树唯一对应了一个长度为n-2的数列，数列中每个数都在1到n的范围内
+3. n个点的无向完全图的生成树个数：$n^{n-2}$
+4. n个节点度依次为$d_1,d_2,...,d_n$的无根树共有$\frac{(n-2)!}{\prod_{i=1}^n(d_i-1)!}$个
+5. n个点的有标号有根树共有$n^{(n-2)}*n=n^{n-1}$个
 # 计算几何
 
 ## 二维几何
@@ -9734,6 +9985,138 @@ void date(int n, int &y, int &m, int &d) {
 ```cpp
 for (int s = u; s; s = (s - 1) & u) {
 	// s 是 u 的一个非空子集 
+}
+```
+
+## cdq分治
+
+第一维排序，每次cdq分治统计按照第一维排序时，下标$[l,mid]$对$[mid+1,r]$的贡献。
+
+一般第二维归并（保证了第二维小的在前面），第三维bit or 线段树（查询比当前第三维小的）。
+
+cdq分治的时候，算完贡献，记得清空BIT。
+
+选择完一个元素，记得i++/j++。
+
+cdq分治完记得把临时数组的排序结果移回原数组。
+
+cdq分治优化dp这类的题目，可能$[mid+1,r]$这个区间，依赖于$[l,mid]$这个区间的结果，此时的执行顺序应为
+1. 递归$[l,mid]$
+2. 处理$[l,mid]$对$[mid+1,r]$的贡献
+3. 再递归$[mid+1,r]$的贡献
+
+第二步的时候，先对右半部分第二维排好序，再归并，然后把右半部分还原回按照第一维排序的形式，再进行第三步操作。
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+#define int long long
+struct BIT{
+    vector<int> tree;
+    int n;
+    inline int lowbit(int x){
+        return x&(-x);
+    }
+    BIT(int n){
+        this->n=n;
+        tree.resize(n+1,0);
+    }
+    void update(int x,int delta){
+        ++x;
+        for(int i=x;i<=n;i+=lowbit(i)) tree[i]+=delta; 
+    }
+    int query(int x,int y){
+        ++x,++y;
+        if(x>y) return 0;
+        int ans=0;
+        for(int i=y;i>=1;i-=lowbit(i)) ans+=tree[i];
+        for(int i=x-1;i>=1;i-=lowbit(i)) ans-=tree[i];
+        return ans;
+    }
+};
+void solve(){
+    vector<array<int,5>> v;
+    map<array<int,3>,int> mp;
+    int op,cnt=0,w;
+    for(int i=1;;i++){
+        cin>>op;
+        if(op==3) break;
+        if(op==0){
+            cin>>w;
+            continue;
+        }
+        if(op==1){
+            int x,y,a;
+            cin>>x>>y>>a;
+            v.push_back({0,i,x,y,a});
+        }else{
+            int x1,y1,x2,y2;
+            cin>>x1>>y1>>x2>>y2;
+            v.push_back({1,i,x2,y2,cnt});
+            v.push_back({1,i,x1-1,y1-1,cnt});
+            v.push_back({-1,i,x1-1,y2,cnt});
+            v.push_back({-1,i,x2,y1-1,cnt});
+            cnt++;
+        }
+    }
+    BIT bit(2e5);
+    vector<int> ans(cnt);
+    sort(v.begin(),v.end(),[](const auto &a,const auto &b){
+        if(a[2]!=b[2]) return a[2]<b[2];
+        else if(a[3]!=b[3]) return a[3]<b[3];
+        else return a[1]<b[1];
+    });
+    vector<array<int,5>> tmp(v.size());
+    auto cdq=[&](auto &&self,int l,int r){
+        if(l>=r) return;
+        int mid=l+(r-l>>1);
+        self(self,l,mid);
+        self(self,mid+1,r);
+        queue<array<int,2>> q;
+        for(int i=l,j=mid+1,cnt=l;cnt<=r;cnt++){
+            if(i<=mid&&j<=r){
+                if(v[i][3]<v[j][3]||v[i][3]==v[j][3]&&v[i][1]<v[j][1]){
+                    if(v[i][0]==0){
+                        bit.update(v[i][1],v[i][4]);
+                        q.push({v[i][1],v[i][4]});
+                    }
+                    tmp[cnt]=move(v[i++]);
+                }else{
+                    if(v[j][0]){
+                        ans[v[j][4]]+=v[j][0]*bit.query(1,v[j][1]-1);
+                    }
+                    tmp[cnt]=move(v[j++]);
+                }
+            }else if(i<=mid){
+                if(v[i][0]==0){
+                    bit.update(v[i][1],v[i][4]);
+                    q.push({v[i][1],v[i][4]});
+                }
+                tmp[cnt]=move(v[i++]);
+            }else{
+                if(v[j][0]){
+                    ans[v[j][4]]+=v[j][0]*bit.query(1,v[j][1]-1);
+                }
+                tmp[cnt]=move(v[j++]);
+            }
+        }
+        for(int i=l;i<=r;i++){
+            v[i]=move(tmp[i]);
+        }
+        while(!q.empty()){
+            auto [a,b]=q.front();
+            q.pop();
+            bit.update(a,-b);
+        }
+    };
+    cdq(cdq,0,v.size()-1);
+    for(int i=0;i<ans.size();i++) cout<<ans[i]<<"\n";
+}
+signed main(){
+    cin.tie(nullptr)->sync_with_stdio(0);
+    int t=1;
+    //cin>>t;
+    while(t--) solve();
+    return 0;
 }
 ```
 
