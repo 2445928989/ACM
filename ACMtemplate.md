@@ -10127,15 +10127,19 @@ Shell
 ```sh
 #!/bin/bash
 clear
-g++ main.cpp -o a.out
+g++ -O2 main.cpp -o a.out
 if [ $? -ne 0 ]; then exit; fi
 s=$(date +%s%3N)
 ./a.out < in.txt > out.txt 2> err.txt
+res=$?
 e=$(date +%s%3N)
 cat out.txt
 echo -e "\n--- err ---\n"
 cat err.txt
 echo -e "\nTime: $((e-s))ms"
+if [ $res -ne 0 ]; then
+    echo "RE!!!!!!!"
+fi
 rm a.out out.txt err.txt
 # 若不需要按下回车后退出可以不打最后一行
 read -n 1 -s
@@ -10145,11 +10149,63 @@ PowerShell
 
 ```powershell
 clear
-g++ main.cpp -o a.exe
+g++ -O2 main.cpp -o a.exe
 if (!$?) { exit }
 $t = Measure-Command { cmd /c "a.exe < in.txt > out 2> err" }
 gc out; echo "`n--- err ---`n"; gc err; echo "`nTime: $([int]$t.TotalMilliseconds)ms"
+if ($LASTEXITCODE -ne 0) {echo "RE!!!!!!!"}
 rm a.exe, out, err -ErrorAction SilentlyContinue
 # 若不需要按下回车后退出可以不打最后一行
 $null = [Console]::ReadKey()
 ```
+
+## 对拍
+
+Shell
+
+```sh
+#!/bin/bash
+mkdir -p data
+trap "rm -f m a r" EXIT
+g++ maker.cpp -o m; g++ main.cpp -o a; g++ right.cpp -o r
+cnt=1
+while true; do
+  ./m > data/in; ./a < data/in > data/out; ./r < data/in > data/ans
+  if diff data/out data/ans > /dev/null; then
+    echo "AC #$cnt"; ((cnt++))
+  else
+    echo "WA!"
+    echo "--- Data ---"; cat data/in
+    echo "--- Main ---"; cat data/out
+    echo "--- Right ---"; cat data/ans
+    break
+  fi
+done
+```
+
+PowerShell
+
+```powershell
+g++ maker.cpp -o m.exe; g++ main.cpp -o a.exe; g++ right.cpp -o r.exe
+if (! (Test-Path data)) { mkdir data }
+try {
+    $n = 1
+    while ($true) {
+        ./m.exe > data/in
+        gc data/in | ./a.exe > data/out
+        gc data/in | ./r.exe > data/ans
+        if ((gc data/out -Raw) -eq (gc data/ans -Raw)) {
+            echo "AC #$n"; $n++
+        } else {
+            echo "WA!"
+            echo "--- Data ---"; gc data/in
+            echo "--- Main ---"; gc data/out
+            echo "--- Right ---"; gc data/ans
+            break
+        }
+    }
+} finally {
+    rm m.exe, a.exe, r.exe -ErrorAction SilentlyContinue
+}
+```
+
