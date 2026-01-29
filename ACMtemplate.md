@@ -575,7 +575,7 @@ struct PresidentTree{
                 return self(self, mid + 1, r, rson[x], rson[y], k - ans);
             }
         };
-        return query(query, L, R, x, y, k);
+        return query(query, L, R, head[x], head[y], k);
     }
     // 查询x~y版本中新增的第k大元素
     // 即对于线段[x,y]求第k大元素
@@ -1131,6 +1131,7 @@ signed main(){
 ```
 
 ## 可删堆
+
 ```c++
 template <class T, class Cmp=less<T>>
 class DeletableHeap {
@@ -1889,8 +1890,6 @@ signed main(){
 	return 0;
 }
 ```
-
-
 
 # 字符串
 
@@ -5698,6 +5697,7 @@ $$
 $$
 \varphi = \operatorname{id} * \mu \quad \Longleftrightarrow \quad \varphi(n) = \sum_{d \mid n} d \cdot \mu\left( \frac{n}{d} \right).
 $$
+
 # 图论
 
 ## Cayley 凯莱定理
@@ -8530,7 +8530,8 @@ prufer转无根树:
 2. n点的无根树唯一对应了一个长度为n-2的数列，数列中每个数都在1到n的范围内
 3. n个点的无向完全图的生成树个数：$n^{n-2}$
 4. n个节点度依次为$d_1,d_2,...,d_n$的无根树共有$\frac{(n-2)!}{\prod_{i=1}^n(d_i-1)!}$个
-5. n个点的有标号有根树共有$n^{(n-2)}*n=n^{n-1}$个
+5. n个点的有标号有根树共有 $n^{(n-2)}*n=n^{n-1}$ 个
+ 
 # 计算几何
 
 ## 二维几何
@@ -9730,7 +9731,6 @@ signed main(){
 }
 ```
 
-
 # 杂项
 
 ## 随机算法
@@ -10208,4 +10208,3 @@ try {
     rm m.exe, a.exe, r.exe -ErrorAction SilentlyContinue
 }
 ```
-
